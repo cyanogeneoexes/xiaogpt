@@ -14,14 +14,15 @@ MINIMAX_API_BASE = "https://api.minimaxi.com/anthropic"
 
 
 @dataclasses.dataclass
-class MiniMaxBot(ChatHistoryMixin, BaseBot):
-    name: ClassVar[str] = "MiniMax"
+class MinimaxBot(ChatHistoryMixin, BaseBot):
+    name: ClassVar[str] = "Minimax"
     default_options: ClassVar[dict[str, Any]] = {
         "model": "MiniMax-M2.7",
         "max_tokens": 2048,
         "temperature": 1.0,
     }
     minimax_api_key: str = ""
+    api_base: str = MINIMAX_API_BASE
     proxy: str | None = None
     history: list[tuple[str, str]] = dataclasses.field(default_factory=list, init=False)
 
@@ -30,13 +31,18 @@ class MiniMaxBot(ChatHistoryMixin, BaseBot):
 
         return anthropic.AsyncAnthropic(
             api_key=self.minimax_api_key,
-            base_url=MINIMAX_API_BASE,
+            base_url=self.api_base,
         )
 
     @classmethod
     def from_config(cls, config):
+        # Support both MINIMAX_API_KEY and ANTHROPIC_API_KEY
+        api_key = config.minimax_api_key or config.anthropic_key
+        # Support custom api_base via config or ANTHROPIC_BASE_URL env var
+        api_base = getattr(config, 'anthropic_base_url', None) or getattr(config, 'api_base', None) or MINIMAX_API_BASE
         return cls(
-            minimax_api_key=config.minimax_api_key,
+            minimax_api_key=api_key,
+            api_base=api_base,
             proxy=config.proxy,
         )
 
@@ -71,7 +77,12 @@ class MiniMaxBot(ChatHistoryMixin, BaseBot):
                 print(str(e))
                 return ""
 
-            response = message.content[0].text
+            # Extract text, handling ThinkingBlock
+            response = ""
+            for block in message.content:
+                if hasattr(block, 'text') and block.text:
+                    response = block.text
+                    break
             self.add_message(query, response)
             print(response)
             return response

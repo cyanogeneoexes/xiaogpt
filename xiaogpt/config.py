@@ -72,6 +72,8 @@ class Config:
     jiekou_api_key: str = os.getenv("JIEKOU_API_KEY", "")
     minimax_api_key: str = os.getenv("MINIMAX_API_KEY", "")
     minimax_model: str = os.getenv("MINIMAX_MODEL", "MiniMax-M2.7")
+    anthropic_key: str = os.getenv("ANTHROPIC_API_KEY", "")
+    anthropic_base_url: str = os.getenv("ANTHROPIC_BASE_URL", "https://api.minimaxi.com/anthropic")
     proxy: str | None = None
     mi_did: str = os.getenv("MI_DID", "")
     keyword: Iterable[str] = KEY_WORD
