@@ -71,7 +71,7 @@ class Config:
     ppio_api_key: str = os.getenv("PPIO_API_KEY", "")
     jiekou_api_key: str = os.getenv("JIEKOU_API_KEY", "")
     minimax_api_key: str = os.getenv("MINIMAX_API_KEY", "")
-    minimax_model: str = os.getenv("MINIMAX_MODEL", "MiniMax-Text-01")
+    minimax_model: str = os.getenv("MINIMAX_MODEL", "MiniMax-M2.7")
     proxy: str | None = None
     mi_did: str = os.getenv("MI_DID", "")
     keyword: Iterable[str] = KEY_WORD

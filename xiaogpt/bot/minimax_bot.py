@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import TYPE_CHECKING, ClassVar
+from typing import Any, AsyncGenerator, ClassVar
 
 import httpx
 from rich import print
@@ -9,28 +9,27 @@ from rich import print
 from xiaogpt.bot.base_bot import BaseBot, ChatHistoryMixin
 from xiaogpt.utils import split_sentences
 
-if TYPE_CHECKING:
-    import openai
 
-
-MINIMAX_API_BASE = "https://api.minimax.chat/v1"
+MINIMAX_API_BASE = "https://api.minimaxi.com/anthropic"
 
 
 @dataclasses.dataclass
 class MiniMaxBot(ChatHistoryMixin, BaseBot):
     name: ClassVar[str] = "MiniMax"
-    default_options: ClassVar[dict[str, str]] = {"model": "MiniMax-Text-01"}
-    minimax_api_key: str
-    minimax_model: str = "MiniMax-Text-01"
+    default_options: ClassVar[dict[str, Any]] = {
+        "model": "MiniMax-M2.7",
+        "max_tokens": 2048,
+        "temperature": 1.0,
+    }
+    minimax_api_key: str = ""
     proxy: str | None = None
     history: list[tuple[str, str]] = dataclasses.field(default_factory=list, init=False)
 
-    def _make_openai_client(self, sess: httpx.AsyncClient) -> openai.AsyncOpenAI:
-        import openai
+    def _make_anthropic_client(self) -> Any:
+        import anthropic
 
-        return openai.AsyncOpenAI(
+        return anthropic.AsyncAnthropic(
             api_key=self.minimax_api_key,
-            http_client=sess,
             base_url=MINIMAX_API_BASE,
         )
 
@@ -38,64 +37,68 @@ class MiniMaxBot(ChatHistoryMixin, BaseBot):
     def from_config(cls, config):
         return cls(
             minimax_api_key=config.minimax_api_key,
-            minimax_model=config.minimax_model,
             proxy=config.proxy,
         )
 
-    async def ask(self, query, **options):
-        ms = self.get_messages()
-        ms.append({"role": "user", "content": f"{query}"})
+    def get_messages(self) -> list[dict]:
+        """Get messages in Anthropic content block format."""
+        ms = []
+        for h in self.history:
+            ms.append({"role": "user", "content": [{"type": "text", "text": h[0]}]})
+            ms.append({"role": "assistant", "content": [{"type": "text", "text": h[1]}]})
+        return ms
+
+    def add_message(self, query: str, message: str) -> None:
+        self.history.append([f"{query}", message])
+        first_history = self.history.pop(0)
+        self.history = [first_history] + self.history[-5:]
+
+    async def ask(self, query: str, **options: Any) -> str:
+        messages = self.get_messages()
+        messages.append({"role": "user", "content": [{"type": "text", "text": query}]})
         kwargs = {**self.default_options, **options}
-        kwargs["model"] = self.minimax_model
         httpx_kwargs = {}
         if self.proxy:
             httpx_kwargs["proxies"] = self.proxy
         async with httpx.AsyncClient(trust_env=True, **httpx_kwargs) as sess:
-            client = self._make_openai_client(sess)
+            client = self._make_anthropic_client()
             try:
-                completion = await client.chat.completions.create(messages=ms, **kwargs)
+                message = await client.messages.create(
+                    messages=messages,
+                    **kwargs,
+                )
             except Exception as e:
                 print(str(e))
                 return ""
 
-            message = completion.choices[0].message.content
-            self.add_message(query, message)
-            print(message)
-            return message
+            response = message.content[0].text
+            self.add_message(query, response)
+            print(response)
+            return response
 
-    async def ask_stream(self, query, **options):
-        ms = self.get_messages()
-        ms.append({"role": "user", "content": f"{query}"})
+    async def ask_stream(self, query: str, **options: Any) -> AsyncGenerator[str, None]:
+        messages = self.get_messages()
+        messages.append({"role": "user", "content": [{"type": "text", "text": query}]})
         kwargs = {**self.default_options, **options}
-        kwargs["model"] = self.minimax_model
+        kwargs.pop("stream", None)
+
         httpx_kwargs = {}
         if self.proxy:
             httpx_kwargs["proxies"] = self.proxy
+
         async with httpx.AsyncClient(trust_env=True, **httpx_kwargs) as sess:
-            client = self._make_openai_client(sess)
+            client = self._make_anthropic_client()
             try:
-                completion = await client.chat.completions.create(
-                    messages=ms, stream=True, **kwargs
-                )
+                async with client.messages.stream(
+                    messages=messages,
+                    **kwargs,
+                ) as stream:
+                    full_text = ""
+                    async for text in stream.text_stream:
+                        print(text, end="")
+                        full_text += text
+                        yield text
+                print()
+                self.add_message(query, full_text)
             except Exception as e:
                 print(str(e))
-                return
-
-            async def text_gen():
-                async for event in completion:
-                    if not event.choices:
-                        continue
-                    chunk_message = event.choices[0].delta
-                    if chunk_message.content is None:
-                        continue
-                    print(chunk_message.content, end="")
-                    yield chunk_message.content
-
-            message = ""
-            try:
-                async for sentence in split_sentences(text_gen()):
-                    message += sentence
-                    yield sentence
-            finally:
-                print()
-                self.add_message(query, message)
