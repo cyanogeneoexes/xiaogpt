@@ -73,6 +73,16 @@ def main():
         help="Jiekou AI api key",
     )
     parser.add_argument(
+        "--minimax_api_key",
+        dest="minimax_api_key",
+        help="MiniMax api key",
+    )
+    parser.add_argument(
+        "--minimax_model",
+        dest="minimax_model",
+        help="MiniMax model (default: MiniMax-Text-01)",
+    )
+    parser.add_argument(
         "--serpapi_api_key",
         dest="serpapi_api_key",
         help="serp api key see https://serpapi.com/",
@@ -210,6 +220,13 @@ def main():
         const="jiekou",
         help="if use Jiekou AI api",
     )
+    bot_group.add_argument(
+        "--use_minimax",
+        dest="bot",
+        action="store_const",
+        const="minimax",
+        help="if use MiniMax api",
+    )
     parser.add_argument(
         "--bing_cookie_path",
         dest="bing_cookie_path",
@@ -231,6 +248,7 @@ def main():
             "llama",
             "ppio",
             "jiekou",
+            "minimax",
         ],
     )
     parser.add_argument(

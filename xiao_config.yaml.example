@@ -20,11 +20,12 @@ verbose: false
 proxy: ""
 
 # ===== 对话 AI 设置 =====
-# 使用的 bot 类型，目前支持 chatgptapi, glm, gemini, langchain, qwen, doubao, moonshot, yi, llama, ppio, jiekou
-bot: chatgptapi
+# 使用的 bot 类型，目前支持 chatgptapi, glm, gemini, langchain, qwen, doubao, moonshot, yi, llama, ppio, jiekou, minimax
+# 默认使用 minimax
+bot: minimax
 # 自定义 prompt
 prompt: "请用300字以内回答"
-# 触发词列表
+# 触发词列表（已禁用，保留配置但不再生效）
 keyword:
     - "请"
 # 更改提示词触发列表
@@ -95,6 +96,12 @@ ppio_api_key: ""
 # ----- 接口AI -----
 # Jiekou AI API key: https://jiekou.ai/settings/key-management
 jiekou_api_key: ""
+
+# ----- MiniMax -----
+# MiniMax API key: https://platform.minimax.chat/
+minimax_api_key: ""
+# MiniMax 模型，默认 MiniMax-Text-01
+minimax_model: "MiniMax-Text-01"
 
 # ===== 语音设置 =====
 # 使用的 TTS 类型，目前支持 mi, edge, openai, azure, volc, baidu, google, minimax, fish

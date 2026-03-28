@@ -181,14 +181,11 @@ class MiGPT:
         return data
 
     def need_ask_gpt(self, record):
+        # Modified: Always return True for any query, ignoring wake word
+        # This enables LLM response to all queries without trigger words
         if not record:
             return False
-        query = record.get("query", "")
-        return (
-            self.in_conversation
-            and not query.startswith(WAKEUP_KEYWORD)
-            or query.lower().startswith(tuple(w.lower() for w in self.config.keyword))
-        )
+        return True
 
     def need_change_prompt(self, record):
         query = record.get("query", "")
@@ -365,19 +362,10 @@ class MiGPT:
             new_record = await self.last_record.get()
             self.polling_event.clear()  # stop polling when processing the question
             query = new_record.get("query", "").strip()
-            if query == self.config.start_conversation:
-                if not self.in_conversation:
-                    print("开始对话")
-                    self.in_conversation = True
-                    await self.wakeup_xiaoai()
-                await self.stop_if_xiaoai_is_playing()
-                continue
-            elif query == self.config.end_conversation:
-                if self.in_conversation:
-                    print("结束对话")
-                    self.in_conversation = False
-                await self.stop_if_xiaoai_is_playing()
-                continue
+            # Modified: Disabled dialog mode - ignore start/end conversation commands
+            # Always process queries through LLM regardless of conversation state
+            if False:  # Disabled: start_conversation/end_conversation handling removed
+                pass
 
             # we can change prompt
             if self.need_change_prompt(new_record):
@@ -388,8 +376,7 @@ class MiGPT:
                 self.log.debug("No new xiao ai record")
                 continue
 
-            # drop key words
-            query = re.sub(rf"^({'|'.join(self.config.keyword)})", "", query)
+            # Modified: No longer dropping key words since wake word is ignored
             # llama3 is not good at Chinese, so we need to add prompt in it.
             if self.config.bot == "llama":
                 query = f"你是一个基于 llama3 的智能助手，请你跟我对话时，一定使用中文，不要夹杂一些英文单词，甚至英语短语也不能随意使用，但类似于 llama3 这样的专属名词除外，问题是：{query}"

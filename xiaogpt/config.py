@@ -70,13 +70,15 @@ class Config:
     volc_api_key: str = os.getenv("volc_api_key", "")
     ppio_api_key: str = os.getenv("PPIO_API_KEY", "")
     jiekou_api_key: str = os.getenv("JIEKOU_API_KEY", "")
+    minimax_api_key: str = os.getenv("MINIMAX_API_KEY", "")
+    minimax_model: str = os.getenv("MINIMAX_MODEL", "MiniMax-Text-01")
     proxy: str | None = None
     mi_did: str = os.getenv("MI_DID", "")
     keyword: Iterable[str] = KEY_WORD
     change_prompt_keyword: Iterable[str] = CHANGE_PROMPT_KEY_WORD
     prompt: str = PROMPT
     mute_xiaoai: bool = False
-    bot: str = "chatgptapi"
+    bot: str = "minimax"
     cookie: str = ""
     api_base: str | None = None
     deployment_id: str | None = None
@@ -117,6 +119,11 @@ class Config:
             if not self.jiekou_api_key:
                 raise Exception(
                     "Using Jiekou AI api needs Jiekou API key, please visit https://api.jiekou.ai"
+                )
+        if self.bot == "minimax":
+            if not self.minimax_api_key:
+                raise Exception(
+                    "Using MiniMax api needs MINIMAX_API_KEY environment variable or --minimax_api_key argument"
                 )
 
     @property
@@ -190,6 +197,8 @@ class Config:
                     key, value = "bot", "ppio"
                 elif key == "use_jiekou":
                     key, value = "bot", "jiekou"
+                elif key == "use_minimax":
+                    key, value = "bot", "minimax"
                 elif key == "enable_edge_tts":
                     key, value = "tts", "edge"
                 if key in cls.__dataclass_fields__:
