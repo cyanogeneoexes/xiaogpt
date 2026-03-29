@@ -10,7 +10,7 @@ password: ""
 cookie: ""
 # 设备 DID，参考 https://github.com/yihong0618/MiService
 mi_did: ""
-# 使用 MI command 与小爱交互
+# 使用 MI command 与小爱交互（建议设为 false，使用 mina 服务的 TTS）
 use_command: false
 # 快速停掉小爱自己的回答
 mute_xiaoai: true
